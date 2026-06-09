@@ -11,6 +11,10 @@
 ```bash
 bash <(curl -sSL https://raw.githubusercontent.com/KogamiAkira/vps-tools/main/toolbox.sh)
 ```
+或
+```bash
+bash <(wget -qO- https://raw.githubusercontent.com/KogamiAkira/vps-tools/main/toolbox.sh)
+```
 ---
 
 ## 📋 功能清单
