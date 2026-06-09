@@ -18,5 +18,5 @@ bash <(curl -sSL https://raw.githubusercontent.com/KogamiAkira/vps-tools/main/to
 * 🚀 **BBR安装**：BBRv3 / BBR / 锐速
 * 🎨 **面板安装**：3x-ui / s-ui / x-ui
 * 🔗 **懒人搭建脚本**：Sing-box (老王 / 勇哥)
-* 📈 **综合测试**：性能测试 / 流媒体解锁 / IP质量 / 网络体检 / 三网回程测试 / 测速
+* 📈 **综合测试**：性能测试 / 流媒体解锁 / IP质量 / 网络体检 / 硬件质量体检 / 三网回程测试 / 测速
 * 🛠️ **其它脚本**：WARP / ACME证书 / IPv6开关
