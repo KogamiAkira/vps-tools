@@ -8,26 +8,20 @@ BLUE='\033[0;36m'
 WHITE='\033[0;37m'
 PLAIN='\033[0m'
 
-# 检查并自动安装核心依赖
+# 检查并自动安装核心依赖（全静默重构版）
 check_dependencies() {
-    clear
-    echo -e "${YELLOW}正在检查系统核心依赖 (curl / wget)...${PLAIN}"
-    
     for cmd in curl wget; do
         if ! command -v $cmd &> /dev/null; then
-            echo -e "${YELLOW}未检测到 $cmd，正在自动为您安装...${PLAIN}"
             if [ -f /etc/debian_version ]; then
-                apt-get update -y && apt-get install -y $cmd
+                apt-get update -y >/dev/null 2>&1 && apt-get install -y $cmd >/dev/null 2>&1
             elif [ -f /etc/redhat-release ]; then
-                yum install -y $cmd
+                yum install -y $cmd >/dev/null 2>&1
             else
                 echo -e "${RED}无法识别的系统，请手动安装 $cmd 后再运行本脚本！${PLAIN}"
                 exit 1
             fi
         fi
     done
-    echo -e "${GREEN}核心依赖就绪！正在进入主菜单...${PLAIN}"
-    sleep 1.2
 }
 
 show_menu() {
@@ -54,15 +48,16 @@ show_menu() {
     echo -e " ${YELLOW}9.${PLAIN} ${WHITE}流媒体解锁测试${PLAIN}"
     echo -e "${YELLOW}10.${PLAIN} ${WHITE}IP 质量检测${PLAIN}"
     echo -e "${YELLOW}11.${PLAIN} ${WHITE}网络质量体检${PLAIN}"
-    echo -e "${YELLOW}12.${PLAIN} ${WHITE}三网回程线路测试${PLAIN}"
-    echo -e "${YELLOW}13.${PLAIN} ${WHITE}三网回程路由测试${PLAIN}"
-    echo -e "${YELLOW}14.${PLAIN} ${WHITE}VPS测速${PLAIN}"
+    echo -e "${YELLOW}12.${PLAIN} ${WHITE}硬件质量体检${PLAIN}"
+    echo -e "${YELLOW}13.${PLAIN} ${WHITE}三网回程线路测试${PLAIN}"
+    echo -e "${YELLOW}14.${PLAIN} ${WHITE}三网回程路由测试${PLAIN}"
+    echo -e "${YELLOW}15.${PLAIN} ${WHITE}VPS测速${PLAIN}"
     echo -e ""
     echo -e "${YELLOW}--- 🛠️ 其它脚本 ---${PLAIN}"
-    echo -e "${YELLOW}15.${PLAIN} ${WHITE}WARP 多功能一键脚本${PLAIN}"
-    echo -e "${YELLOW}16.${PLAIN} ${WHITE}ACME 一键证书申请${PLAIN}"
-    echo -e "${YELLOW}17.${PLAIN} ${RED}禁用ipv6${PLAIN}"
-    echo -e "${YELLOW}18.${PLAIN} ${GREEN}启用Ipv6${PLAIN}"
+    echo -e "${YELLOW}16.${PLAIN} ${WHITE}WARP 多功能一键脚本${PLAIN}"
+    echo -e "${YELLOW}17.${PLAIN} ${WHITE}ACME 一键证书申请${PLAIN}"
+    echo -e "${YELLOW}18.${PLAIN} ${RED}禁用ipv6${PLAIN}"
+    echo -e "${YELLOW}19.${PLAIN} ${GREEN}启用Ipv6${PLAIN}"
     echo -e " ${YELLOW}0.${PLAIN} ${WHITE}退出脚本${PLAIN}"
     echo -e "${GREEN}==================================================${PLAIN}"
 }
@@ -90,27 +85,34 @@ YES6
     sysctl -p >/dev/null 2>&1
     
     echo -e "${YELLOW}正在尝试刷新网络接口获取 IPv6 地址...${PLAIN}"
+    # 先重启全局网络服务
     if [ -f /etc/debian_version ]; then
         systemctl restart networking >/dev/null 2>&1
-        # 自动获取当前活动的物理网卡名称，避免写死 eth1 导致别的机器不兼容
-        local active_interface=$(ip -4 route show to default | awk '{print $5}' | head -n 1)
-        if [ -n "$active_interface" ]; then
-            dhclient -6 -r "$active_interface" >/dev/null 2>&1 # 释放旧租约
-            dhclient -6 -NW "$active_interface" >/dev/null 2>&1 # 后台自动获取，绝不卡死
-        fi
     elif [ -f /etc/redhat-release ]; then
         systemctl restart network >/dev/null 2>&1
     fi
     
-    echo -e "${GREEN}IPv6 协议已成功恢复启用！后台正在自动获取 IP，无需重启。${PLAIN}"
+    # 🌟 MAX多网卡自动遍历下发重构 🌟
+    # 自动获取当前系统下所有除 lo 以外的活跃网络接口名，最大化并发请求获取
+    interfaces=$(ls /sys/class/net | grep -v lo)
+    for iface in $interfaces; do
+        if [ -d "/sys/class/net/$iface" ]; then
+            # 对所有物理/虚拟网卡并行发起带有不等待(N)和非阻塞(W)的IPv6获取指令
+            dhclient -6 -NW "$iface" >/dev/null 2>&1 &
+        fi
+    done
+    wait # 等待所有后台网络下发任务执行完毕
+    
+    echo -e "${GREEN}IPv6 协议及多网卡并发获取已成功恢复启用！${PLAIN}"
+    echo -e "${YELLOW}提示：先使用ip a 查看 IPv6 是否获取成功，若 IPv6 一直获取不成功，则 (reboot) 重启下系统。${PLAIN}"
 }
 
-# 脚本运行入口，先执行依赖检查
+# 脚本运行入口，先执行静默依赖检查
 check_dependencies
 
 while true; do
     show_menu
-    read -p "请输入选项符号 (0-18): " num
+    read -p "请输入选项符号 (0-19): " num
     case "$num" in
         1)
             bash <(curl -Ls https://raw.githubusercontent.com/byJoey/Actions-bbr-v3/refs/heads/main/install.sh)
@@ -146,32 +148,35 @@ while true; do
             bash <(curl -Ls https://Check.Place) -N
             ;;
         12)
-            curl https://raw.githubusercontent.com/zhanghanyun/backtrace/main/install.sh -sSf | sh
+            bash <(curl -Ls https://Check.Place) -H
             ;;
         13)
-            bash <(curl -Ls https://raw.githubusercontent.com/nxtrace/Nxtrace-core/main/get_nxtrace.sh)
+            curl https://raw.githubusercontent.com/zhanghanyun/backtrace/main/install.sh -sSf | sh
             ;;
         14)
-            wget https://github.com/flben233/cdn-speed/releases/download/v20260503-062319/cdn-speed-linux-amd64 && chmod +x ./cdn-speed-linux-amd64 && { ./cdn-speed-linux-amd64; rm -f ./cdn-speed-linux-amd64 cdn-speed.log ; }
+            bash <(curl -Ls https://raw.githubusercontent.com/nxtrace/Nxtrace-core/main/get_nxtrace.sh)
             ;;
         15)
-            wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh
+            wget https://github.com/flben233/cdn-speed/releases/download/v20260503-062319/cdn-speed-linux-amd64 && chmod +x ./cdn-speed-linux-amd64 && { ./cdn-speed-linux-amd64; rm -f ./cdn-speed-linux-amd64 cdn-speed.log ; }
             ;;
         16)
-            bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/acme-yg/main/acme.sh)
+            wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh
             ;;
         17)
-            disable_ipv6
+            bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/acme-yg/main/acme.sh)
             ;;
         18)
+            disable_ipv6
+            ;;
+        19)
             enable_ipv6
             ;;
         0)
-            echo -e "${BLUE}退出工具箱，祝您用机愉快！${PLAIN}"
+            echo -e "${WHITE}诶？！要退出吗(•́ ✖ •̀)是我不对！请不要把我当成赛博垃圾丢掉啊拜拜……${PLAIN}"
             exit 0
             ;;
         *)
-            echo -e "${RED}输入错误，请输入 0 到 18 之间的数字！${PLAIN}"
+            echo -e "${RED}输入错误，请输入 0 到 19 之间的数字！${PLAIN}"
             ;;
     esac
     echo ""
