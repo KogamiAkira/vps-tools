@@ -163,7 +163,7 @@ while true; do
             wget -N https://gitlab.com/fscarmen/warp/-/raw/main/menu.sh && bash menu.sh
             ;;
         17)
-            bash <(curl -Ls https://raw.githubusercontent.com/yonggekkk/acme-yg/main/acme.sh)
+            bash <(curl -sL https://raw.githubusercontent.com/KogamiAkira/ca/main/acme.sh)
             ;;
         18)
             disable_ipv6
