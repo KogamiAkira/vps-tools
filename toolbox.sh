@@ -172,7 +172,6 @@ while true; do
             enable_ipv6
             ;;
         0)
-            echo -e "${WHITE}诶？！要退出吗(•́ ✖ •̀)是我不对！请不要把我当成赛博垃圾丢掉啊拜拜……${PLAIN}"
             exit 0
             ;;
         *)
