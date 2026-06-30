@@ -124,7 +124,7 @@ while true; do
             bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
             ;;
         4)
-            bash <(curl -Ls https://raw.githubusercontent.com/admin8800/s-ui/main/install.sh)
+            bash <(curl -Ls https://raw.githubusercontent.com/alireza0/s-ui/master/install.sh)
             ;;
         5)
             bash <(curl -Ls https://raw.githubusercontent.com/vaxilu/x-ui/master/install.sh)
